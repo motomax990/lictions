@@ -10,6 +10,8 @@ fr = tk.Frame(root)
 root.geometry('800x600')
 canv = tk.Canvas(root, bg='white')
 canv.pack(fill=tk.BOTH, expand=1)
+direction = 1
+
 
 class ball():
     def __init__(self, x=40, y=450):
@@ -55,13 +57,12 @@ class ball():
         и стен по краям окна (размер окна 800х600).
         """
         # FIXME
-        pos = canv.coords(self.id)
         if self.x < 800:
             self.direction = -self.direction
         if self.y < 600:  
             self.direction = -self.direction
         if self.x < 0 or self.y > 600:
-            print('del ball')
+            #print('del ball')
             canv.delete(self.id)
         self.x += self.vx * self.direction
         self.y -= self.vy * self.direction
@@ -133,13 +134,16 @@ class gun():
 class target():
     points = 0
     live = 1
-    # FIXME: don't work!!! How to call this functions when object is created?
+    vx = 5
+    vy = 15
+    # DONE: don't work!!! How to call this functions when object is created?
     # self.id = canv.create_oval(0,0,0,0)
     # self.id_points = canv.create_text(30,30,text = self.points,font = '28')
     # self.new_target()
 
     def new_target(self):
         """ Инициализация новой цели. """
+        self.direction = 1
         x = self.x = rnd(600, 780)
         y = self.y = rnd(300, 550)
         r = self.r = rnd(2, 50)
@@ -161,7 +165,22 @@ class target():
         self.id_points = canv.create_text(30,30,text = '',font = '28')
         canv.itemconfig(self.id_points, text=self.points)
 
-
+    def move(self):
+        #print('move')
+        #print(self.y)
+        if self.y > 600:  
+            self.direction = -self.direction
+        if self.y < 0:
+            self.direction = -self.direction
+        self.y -= self.vy * self.direction
+        #print(self.y)
+        canv.delete(self.id)
+        self.id = canv.create_oval(self.x - self.r,self.y - self.r,self.x + self.r,self.y + self.r, fill = "red")
+        canv.coords(self.id, self.x-self.r, self.y-self.r, self.x+self.r, self.y+self.r)
+        canv.itemconfig(self.id, fill=self.color)
+    def delite_yorself(self):
+        canv.delete(self.id)
+        
 t1 = target()
 t2 = target()
 screen1 = canv.create_text(400, 300, text='', font='28')
@@ -172,7 +191,13 @@ balls = []
 def mover(b):
     b.move()
     b.set_coords()
-
+def target_move():
+    if t1.get_live() == 1:
+        t1.move()
+    if t2.get_live() == 1:
+        t2.move()
+    root.after(50,target_move)
+    
 def new_game(event=''):
     global gun, t1, screen1, balls, bullet, root
     targets = []
@@ -182,14 +207,18 @@ def new_game(event=''):
     canv.bind('<Button-1>', g1.fire2_start)
     canv.bind('<ButtonRelease-1>', g1.fire2_end)
     canv.bind('<Motion>', g1.targetting)
-
+    t1.vy = 5
+    t2.vy = 5
     z = 0.03
     t1.set_live(1)
     t2.set_live(1)
+    target_move()
     while (t1.get_live() == 1 or t2.get_live() == 1) or len(balls) >0:
         for b in balls:
             mover(b)
             if (b.hittest(t1) and (t1.get_live() == 1)) or (b.hittest(t2) and (t2.get_live() == 1)):
+
+
                 if (b.hittest(t1) and t2.get_live() == 0):
                     t1.set_live(0)
                     t1.hit()
@@ -213,17 +242,21 @@ def new_game(event=''):
                     t1.set_live(0)
                     t1.hit()
                       
-                elif (b.hittest(t2) and t1.get_live() == 1):
+                elif ( t1.get_live() == 1):
                     t2.set_live(0)
                     t2.hit()
-                        
+                
+                    
+                    
+                    
         #time.sleep(1)    
         canv.update()
         time.sleep(0.03)    
         #g1.targetting()
         g1.power_up()
     print("exit now")
-
+    t1.delite_yorself()
+    t2.delite_yorself()
     canv.itemconfig(screen1, text='')
     canv.delete(gun)
     root.after(750,new_game)
